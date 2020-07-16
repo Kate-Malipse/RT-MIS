@@ -1,74 +1,72 @@
-"""Demo registration feature tests."""
-import pytest
+"""Demo mode feature tests."""
+
 from src.pages.KvrachuPages import (MainPage, DemoPage)
-from pytest_bdd import (given, scenario, then, when)
+from src.tests.regions_urls import *
 from selenium.webdriver.support.wait import TimeoutException
+from pytest_bdd import (
+    given,
+    scenario,
+    then,
+    when,
+)
 
-# Constants
-
-MED_SITE = "https://k-vrachu.ru/"
-TITLE = "Региональный портал медицинских услуг"
+REGISTER_ERROR_MESSAGE = "Запись в базу данных невозможна"
 
 
-@scenario('demo_register_to_doctor.feature', 'Enable demo mode')
-def test_enable_demo_mode():
-    """Enable demo mode."""
+@scenario('demo_register_to_doctor.feature', 'Register to doctor from demo account')
+def test_register_to_doctor_from_demo_account():
+    """Register to doctor from demo account."""
     pass
 
 
-@given('K-vrachu main page is displayed')
-def kvrachu_main_page_is_displayed(driver):
-    """K-vrachu main page is displayed."""
+@given('user entered demo mode')
+def user_entered_demo_mode(driver):
+    """user entered demo mode."""
+    success = False
     main_page = MainPage(driver)
-    main_page.go_to_site(MED_SITE)
-    load_title = main_page.get_title()
-    assert load_title == TITLE
 
-
-@when('a user turns on the demo mode')
-def a_user_turns_on_the_demo_mode(driver):
-    """a user turns on the demo mode."""
-    main_page = MainPage(driver)
-    try:
-        main_page.to_demo_page()
-    except TimeoutException:
-        main_page.change_region(1)
-        main_page.to_demo_page()
-
-
-@then('a user logged in by a demo account')
-def a_user_logged_in_by_a_demo_account(driver):
-    """a user logged in by a demo account"""
-    main_page = MainPage(driver)
-    try:
-        main_page.check_demo_mode_on()
-    except TimeoutException:
-        main_page.change_region(1)
-        main_page.to_demo_page()
+    for region, url in regions.items():
         try:
-            main_page.check_demo_mode_on()
-        except:
-            print("Error")
+            # 1. поиск кнопки с демо режимомом
+            main_page.go_to_site(url)
 
-# @scenario('demo_register_to_doctor.feature', 'Register to doctor from demo account')
-# def test_register_to_doctor_from_demo_account():
-#     """Register to doctor from demo account."""
-#     pytest.skip("Skip")
+            # 2. вход в демо режим
+            main_page.to_demo_page()
+
+            # 3. проверяем что демо режим включен
+            main_page.get_profile_element()
+
+            # Регион найден
+            success = True
+            break
+        # в случае ошибки на первых шагах -> повторить с шага 1
+        except TimeoutException:
+            print(f'В регионе {region} не доступен работающий демо режим')
+            continue
+        # в случае непредвиденной ошибки выходим и валим тест
+        except BaseException as e:
+            print(f'Ошибка при поиске региона с работающим демо режимом. {e}')
+            break
+
+    if success is False:
+        assert False, 'Не найдены регионы с работающим демо режимом'
 
 
-# @given('a user is authenticated by a demo account')
-# def a_user_is_authenticated_by_a_demo_account():
-#     """a user is authenticated by a demo account."""
-#     raise NotImplementedError
+@when('user selects the registration service')
+def user_selects_the_registration_service(driver):
+    """user selects the registration service."""
+    demo_page = DemoPage(driver)
+    demo_page.register_to_doctor()
 
 
-# @when('a user selects the service Register to doctor')
-# def a_user_selects_the_service_register_to_doctor():
-#     """a user selects the service Register to doctor."""
-#     raise NotImplementedError
+@then('appears error message')
+def appears_error_message(driver):
+    demo_page = DemoPage(driver)
+    register_message = demo_page.get_register_message()
+    assert register_message == REGISTER_ERROR_MESSAGE
 
 
-# @then('appears message "Запись в базу данных невозможна"')
-# def appears_message():
-#     """appears message "Запись в базу данных невозможна"."""
-#     raise NotImplementedError
+@then('user logout')
+def user_logout(driver):
+    demo_page = DemoPage(driver)
+    demo_page.logout()
