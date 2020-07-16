@@ -14,12 +14,3 @@ class BasePage:
 
     def go_to_site(self, url):
         self.driver.get(url)
-
-    def get_title(self):
-        return self.driver.title
-
-    def find_and_click(self, locator, timer=0.1):
-        element = self.find_element(locator)
-        element.click()
-        # Ожидание после нажатия (если необходимо):
-        time.sleep(timer)
